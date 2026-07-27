@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if editing %}Edit Invoice{% else %}New Invoice{% endif %}{% endblock %}
+
+{% block content %}
+<h2>{% if editing %}Edit Invoice{% else %}Create Invoice{% endif %}</h2>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5>Invoice Details</h5>
+            <a href="{% url 'customer_create' %}" class="btn btn-sm btn-outline-primary mb-2">+ Add New Customer</a>
+            {{ form.as_p }}
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5>Invoice Items</h5>
+            {{ formset.management_form }}
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Quantity</th>
+                        <th>Unit Price</th>
+                        <th>Tax %</th>
+                        {% if formset.can_delete %}<th>Delete</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item_form in formset %}
+                    <tr>
+                        <td>
+                            {{ item_form.description }}
+                            <button type="button" class="btn btn-sm btn-outline-info mt-1 ai-enhance-btn">✨ Enhance</button>
+                        </td>
+                        <td>{{ item_form.quantity }}</td>
+                        <td>{{ item_form.unit_price }}</td>
+                        <td>{{ item_form.tax_percent }}</td>
+                        {% if formset.can_delete %}<td>{{ item_form.DELETE }}</td>{% endif %}
+                        {{ item_form.id }}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-success">Save Invoice</button>
+    <a href="{% url 'invoice_list' %}" class="btn btn-secondary">Cancel</a>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.ai-enhance-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const input = btn.previousElementSibling;
+            const roughText = input.value;
+            if (!roughText) {
+                alert('Type something first, then click Enhance.');
+                return;
+            }
+            btn.textContent = 'Thinking...';
+            fetch("{% url 'ai_enhance_description' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: 'text=' + encodeURIComponent(roughText)
+            })
+            .then(response => response.json())
+            .then(data => {
+                input.value = data.description;
+                btn.textContent = '✨ Enhance';
+            })
+            .catch(err => {
+                console.error(err);
+                btn.textContent = '✨ Enhance';
+                alert('AI enhance failed, keeping your original text.');
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
